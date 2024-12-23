@@ -37,6 +37,7 @@ class SinCosPosEmbed(nn.Module):
         self.cls_token = cls_token
 
     def forward(self, h: int, w: int, embed_dim: int) -> torch.Tensor:
+        print(f"SinCosPosEmbed forward: h={h}, w={w}, embed_dim={embed_dim}")
         assert embed_dim % 2 == 0, embed_dim
 
         grid_h = torch.arange(h).float()
@@ -44,14 +45,17 @@ class SinCosPosEmbed(nn.Module):
         grid = torch.meshgrid(grid_w, grid_h, indexing="xy")
         grid = torch.stack(grid, dim=0)
         grid = grid.reshape([2, 1, h, w])
+        print(f"Grid shape: {grid.shape}")
 
         emb_h = self._get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])
         emb_w = self._get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])
         pos_embed = torch.concatenate([emb_h, emb_w], dim=1)  # (H*W, D)
+        print(f"Position embedding shape (before cls_token): {pos_embed.shape}")
         if self.cls_token:
             pos_embed = torch.concatenate(
                 [torch.zeros([1, embed_dim]), pos_embed], dim=0
             )
+            print(f"Position embedding shape (with cls_token): {pos_embed.shape}")
         return pos_embed
 
     @staticmethod
@@ -102,8 +106,11 @@ class PatchEmbed(nn.Module):
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        print(f"PatchEmbed input shape: {x.shape}")
         x = self.proj(x).flatten(2).transpose(1, 2)
+        print(f"PatchEmbed after projection and flattening: {x.shape}")
         x = self.norm(x)
+        print(f"PatchEmbed after normalization: {x.shape}")
         return x
 
 
@@ -148,21 +155,27 @@ class ViTPreprocessor(nn.Module):
     def forward(
         self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
+        print(f"ViTPreprocessor input shape: {x.shape}")
         B, _, H, W = x.shape
         tokens = self.patchifier(x)
+        print(f"ViTPreprocessor after patch embedding: {tokens.shape}")
         if self.cls_token is not None:
             cls_token = self.cls_token.expand(B, -1, -1)
             tokens = torch.cat([cls_token, tokens], dim=1)
+            print(f"ViTPreprocessor after adding CLS token: {tokens.shape}")
         B, N, D = tokens.shape
 
         if callable(self.pos_embed):
             p_h, p_w = self.patchifier.patch_size
             pos_embed = self.pos_embed(H // p_h, W // p_w, D).unsqueeze(0)
+            print(f"ViTPreprocessor position embedding shape: {pos_embed.shape}")
         else:
             pos_embed = self.pos_embed
+            print(f"ViTPreprocessor absolute position embedding shape: {pos_embed.shape}")
         pos_embed = pos_embed.to(tokens.device)
 
         tokens = tokens + pos_embed[:, :N]
+        print(f"ViTPreprocessor after adding position embedding: {tokens.shape}")
 
         if self.drop_patches and mask is not None:
             if self.cls_token is not None:
@@ -170,6 +183,8 @@ class ViTPreprocessor(nn.Module):
             tokens = tokens[~mask].reshape(B, -1, D)
             if self.cls_token is not None:
                 tokens = torch.cat([cls_token, tokens], dim=1)
+            print(f"ViTPreprocessor after patch dropping and reshaping: {tokens.shape}")
+
 
         return tokens
 
@@ -197,6 +212,7 @@ class Attention(nn.Module):
     def forward(
         self, x: torch.Tensor, mask: Optional[torch.Tensor] = None, **_: Any
     ) -> torch.Tensor:
+        print(f"Attention input shape: {x.shape}")
         B, N, C = x.shape
         qkv = (
             self.qkv(x)
@@ -208,9 +224,12 @@ class Attention(nn.Module):
         x = F.scaled_dot_product_attention(
             q, k, v, is_causal=self.is_causal, attn_mask=mask
         )
+        print(f"Attention after scaled dot-product attention: {x.shape}")
         x = x.transpose(1, 2).contiguous().reshape(B, N, C)
         x = self.proj(x)
+        print(f"Attention after projection: {x.shape}")
         x = self.proj_drop(x)
+        print(f"Attention after dropout: {x.shape}")
         return x
 
 
@@ -272,11 +291,13 @@ class MLP(nn.Module):
         self.drop = nn.Dropout(drop)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        print(f"Input to MLP: {x.shape}")
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
         x = self.fc2(x)
         x = self.drop(x)
+        print(f"mlp last: {x.shape}")
         return x
 
 
@@ -315,9 +336,12 @@ class Block(nn.Module):
     def forward(
         self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
+        print(f"Input to Block: {x.shape}")
         # pre-norm
         x = x + self.attn(self.norm_1(x), mask=mask)
+        print(f"After attention (in block): {x.shape}")
         x = x + self.mlp(self.norm_2(x))
+        print(f"After MLP (in block): {x.shape}")
         return x
 
 
