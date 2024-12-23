@@ -44,7 +44,9 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
         pos_embed_type: Literal["sincos", "absolute"] = "absolute",
         head_type: Optional[Literal["attention-pool"]] = None,
         **kwargs: Any,
-    ):
+    ):  
+
+        print("***********AIMv2VisionEncoder called start*********")
         super().__init__()
         norm_layer = functools.partial(layers.RMSNorm, eps=1e-5)
         patchifier = layers.PatchEmbed(
@@ -60,6 +62,7 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
             cls_token=False,
             pos_embed_type=pos_embed_type,
         )
+        print(f'self.preprocessor:{self.preprocessor}')
         self.trunk = models.Transformer(
             attn_target=lambda use_bias: layers.Attention(
                 dim=embed_dim, num_heads=num_heads, use_bias=use_bias
@@ -71,6 +74,7 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
             norm_layer=norm_layer,
             **kwargs,
         )
+        print(f'self.trunk:{self.trunk}')
         if head_type == "attention-pool":
             self.head = layers.AttentionPoolingClassifier(
                 embed_dim,
@@ -84,6 +88,9 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
             )
         else:
             self.head = nn.Identity()
+        
+        print(f'self.head:{self.head}')
+        print("***********AIMv2VisionEncoder called end*********")
 
 
 class AIMv2TextEncoder(mixins.AIMv2TextMixin, nn.Module):
@@ -98,6 +105,7 @@ class AIMv2TextEncoder(mixins.AIMv2TextMixin, nn.Module):
         max_context_length: int = 77,
         **kwargs: Any,
     ):
+        print("***********AIMv2TextEncoder called start*********")
         super().__init__()
         norm_layer = functools.partial(layers.RMSNorm, eps=1e-5)
         self.preprocessor = layers.TextPreprocessor(
@@ -121,7 +129,7 @@ class AIMv2TextEncoder(mixins.AIMv2TextMixin, nn.Module):
             **kwargs,
         )
         self.head = layers.ExtractEOS()
-
+        print("***********AIMv2TextEncoder called end*********")
 
 class AIMv2LiT(nn.Module):
     def __init__(
@@ -144,6 +152,7 @@ class AIMv2LiT(nn.Module):
         max_logit_scale: float = 100.0,
         **kwargs: Any,
     ):
+        print("***********AIMv2LiT called start*********")
         super().__init__()
         self.image_encoder = AIMv2VisionEncoder(
             img_size=img_size,
@@ -222,6 +231,7 @@ class AIMv2LiT(nn.Module):
         out = self.text_projector(out)
         return out
 
+    print("***********AIMv2LiT called end*********")
 
 def aimv2_base(
     img_size: Union[int, Tuple[int, int]] = 224,

@@ -63,7 +63,7 @@ def _get_model_func_and_img_size(model_name: ModelName) -> Tuple[str, Optional[i
 def _load_torch(model_name: ModelName, weights_path: str) -> Any:
     from aim.v2.torch import models
     from safetensors.torch import load_file
-    print("_load_torch called start")
+    print("***********_load_torch called start*********")
     print(f"Loading model name:{model_name} from weights_path:{weights_path}")
 
     model_func, img_size = _get_model_func_and_img_size(model_name)
@@ -71,7 +71,7 @@ def _load_torch(model_name: ModelName, weights_path: str) -> Any:
     print(f"model_func:{model_func}")
     model = model_func(img_size=img_size)
     print(f"model:{model}")
-    print("_load_torch called end")
+    print("***********_load_torch called end*********")
 
     state_dict = load_file(weights_path)
     model.load_state_dict(state_dict, strict=True)
