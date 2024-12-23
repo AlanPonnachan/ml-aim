@@ -62,7 +62,7 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
             cls_token=False,
             pos_embed_type=pos_embed_type,
         )
-        print(f'self.preprocessor:{self.preprocessor}')
+      
         self.trunk = models.Transformer(
             attn_target=lambda use_bias: layers.Attention(
                 dim=embed_dim, num_heads=num_heads, use_bias=use_bias
@@ -74,7 +74,7 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
             norm_layer=norm_layer,
             **kwargs,
         )
-        print(f'self.trunk:{self.trunk}')
+ 
         if head_type == "attention-pool":
             self.head = layers.AttentionPoolingClassifier(
                 embed_dim,
@@ -89,7 +89,7 @@ class AIMv2VisionEncoder(mixins.AIMv2VisionMixin, nn.Module):
         else:
             self.head = nn.Identity()
         
-        print(f'self.head:{self.head}')
+ 
         print("***********AIMv2VisionEncoder called end*********")
 
 

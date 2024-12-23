@@ -44,11 +44,15 @@ class TextPreprocessor(nn.Module):
         self.eos_token_id = eos_token_id
 
     def forward(self, input_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        print(f"TextPreprocessor forward - input_ids shape: {input_ids.shape}")
         _, N = input_ids.shape
         max_len = min(N, self.max_context_length)
         eos_token_mask = input_ids == self.eos_token_id
+        print(f"TextPreprocessor forward - eos_token_mask shape: {eos_token_mask.shape}")
         tokens = self.text_embedding(input_ids)
+        print(f"TextPreprocessor forward - tokens after embedding shape: {tokens.shape}")
         tokens = tokens[:, :max_len] + self.positional_embedding[:max_len].unsqueeze(0)
+        print(f"TextPreprocessor forward - tokens after adding positional embedding shape: {tokens.shape}")
         return tokens, eos_token_mask
 
 
@@ -56,12 +60,19 @@ class ExtractEOS(nn.Module):
     def forward(
         self, tokens: torch.Tensor, eos_token_mask: torch.Tensor
     ) -> torch.Tensor:
+        
+        print(f"ExtractEOS forward - tokens shape: {tokens.shape}")
+        print(f"ExtractEOS forward - eos_token_mask shape: {eos_token_mask.shape}")
         B, _, D = tokens.shape
         eos_token_mask = torch.argmax(eos_token_mask.float(), dim=-1)
+        print(f"ExtractEOS forward - eos_token_mask after argmax shape: {eos_token_mask.shape}")
         assert eos_token_mask.shape == (B,)
         eos_token_mask = eos_token_mask.reshape(B, 1, 1).expand(B, 1, D)
+        print(f"ExtractEOS forward - eos_token_mask after reshape and expand shape: {eos_token_mask.shape}")
         eos_token = torch.gather(tokens, 1, eos_token_mask)
+        print(f"ExtractEOS forward - eos_token after gather shape: {eos_token.shape}")
         eos_token = eos_token.squeeze(1)
+        print(f"ExtractEOS forward - eos_token after squeeze shape: {eos_token.shape}")
         return eos_token
 
 
@@ -81,7 +92,11 @@ class SwiGLUFFN(nn.Module):
         self.norm_layer = norm_layer(hidden_features) if norm_layer else nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        print(f"SwiGLUFFN forward - input x shape: {x.shape}")
         x = F.silu(self.fc1(x)) * self.fc3(x)
+        print(f"SwiGLUFFN forward - x after fc1 and fc3 shapes: {x.shape}")
         x = self.norm_layer(x)
+        print(f"SwiGLUFFN forward - x after norm_layer shape: {x.shape}")
         x = self.fc2(x)
+        print(f"SwiGLUFFN forward - x after fc2 shape: {x.shape}")  
         return x

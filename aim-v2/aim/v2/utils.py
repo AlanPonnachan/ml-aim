@@ -70,7 +70,6 @@ def _load_torch(model_name: ModelName, weights_path: str) -> Any:
     model_func = getattr(models, model_func)
     print(f"model_func:{model_func}")
     model = model_func(img_size=img_size)
-    print(f"model:{model}")
     print("***********_load_torch called end*********")
 
     state_dict = load_file(weights_path)
